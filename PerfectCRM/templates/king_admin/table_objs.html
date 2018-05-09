@@ -1,0 +1,152 @@
+{%  extends 'king_admin/table_index.html' %}
+{% load tags %}
+
+
+{% block container %}
+    {{ admin_class.list_display }}
+    <div class="panel panel-info">
+          <div class="panel-heading">
+
+              {% if not admin_class.readonly_table %}
+                <h3 class="panel-title">{% get_model_name admin_class %}
+                    <a href="{{ request.path }}add/" class="pull-right">Add</a>
+                </h3>
+              {% endif %}
+
+          </div>
+          <div class="panel-body">
+               <div class="row">
+                <form class="" method="get">
+                  {% for filter_field in admin_class.list_filters %}
+                    <div class="col-lg-2">
+                    <span>{{ filter_field }}</span>
+                    {% render_filter_ele filter_field admin_class filter_condtions %}
+                    </div>
+
+                  {% endfor %}
+
+                    <button type="SUBMIT" class="btn btn-success" style="margin-top: 20px">检索</button>
+
+                　<hr>
+                  <div class="row">
+                      <div class="col-lg-3"　>
+                        <input type="search" name="_q" class="form-control" style="margin-left:15px" value="{{ search_text }}" placeholder="search by {% for search_field in admin_class.search_fields %}{{ search_field }},{% endfor %} ">
+                      </div>
+                      <div class="col-lg-2"　>
+                        <button type="SUBMIT" class="btn btn-success">search</button>
+                      </div>
+                  </div>
+                </form>
+
+                <div class="row" style="margin-left: 0">
+                    <form method="post" onsubmit="return actionCheck(this)">{% csrf_token %}
+                        <div class="col-lg-2">
+                            <select id="select_list" class="form-control" name="action" style="margin-top: 15px">
+                                <option value="">------------</option>
+                                {% for action in admin_class.actions %}
+                                    <option value="{{ action }}">{% get_action_verbose admin_class action %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-lg-1" style="margin-top: 15px">
+                            <button type="submit" class="btn" >Go</button>
+                        </div>
+                    </form>
+                </div>
+
+               </div>
+
+              <table class="table table-hover">
+                  <thead>
+                    <tr>
+                        <th><input tag="obj_allcheck" type="checkbox" onclick="checkAllToggle(this)"/></th>
+                        {% for column in admin_class.list_display %}
+                            {% build_table_header_column column orderby_key filter_condtions admin_class %}
+                        {% endfor %}
+                    </tr>
+                  </thead>
+                  <tfoot>
+                    <tr>
+                        <td></td>
+                        <td>总计{{ query_sets.paginator.count }}条</td></tr>
+                  </tfoot>
+                  <tbody>
+{#                    {% get_query_sets  admin_class as query_sets %}#}
+                    {% for obj in query_sets %}
+                    <tr>
+                        <td><input tag="obj_checkbox" type="checkbox" value="{{ obj.id }}" onclick="changeCheckBox(this)"/></td>
+                        {% build_table_row request obj admin_class %}
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+
+              </table>
+
+
+
+          <nav>
+
+              <ul class="pagination">
+
+                  {% build_paginator query_sets filter_condtions  previous_orderby search_text%}
+
+              </ul>
+          </nav>
+          </div>
+    </div>
+    
+    <script>
+
+        {#全选#}
+        function checkAllToggle(obj) {
+            if ($(obj).prop("checked")){
+                $("input[tag='obj_checkbox']").prop("checked", true);
+            } else {
+                $("input[tag='obj_checkbox']").prop("checked", false);
+            }
+        }
+
+        {#取消全选#}
+        function changeCheckBox(obj) {
+            var check_state = true;
+            $("input[tag='obj_checkbox']").each(function () {
+                if (!$(this).prop('checked')){
+                    $("input[tag='obj_allcheck']").prop("checked", false);
+                    check_state = false;
+                }
+                if (check_state){
+                    $("input[tag='obj_allcheck']").prop("checked", true);
+                }
+            });
+        }
+
+        {#admin-actions提交#}
+        function actionCheck(self) {
+            var selected_action = $('#select_list').val();
+            var selected_ids = [];
+            $("input[tag='obj_checkbox']:checked").each(function () {
+                selected_ids.push($(this).val());
+            });
+
+            if (selected_ids.length == 0){
+                alert("No object got selected!");
+                return false;
+            }
+
+            if (!selected_action){
+                alert("No action selected!");
+                return false;
+            }
+
+            //start submit
+            var selected_ids_ele = "<input  name='selected_ids' type='hidden' value='" + selected_ids.toString() + "' >"
+            $(self).append(selected_ids_ele);
+
+           return true;
+        }
+    </script>
+    
+{% endblock %}
+
+
